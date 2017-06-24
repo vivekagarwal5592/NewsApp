@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ProgressBar;
 
 import org.json.JSONArray;
@@ -27,14 +28,17 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<NewsDetails> newsdetails = new ArrayList<NewsDetails>();
     private final Context context = this;
     private Background background;
-private ProgressBar progressBar;
+    private ProgressBar progressBar;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        progressBar = (ProgressBar)findViewById(R.id.progressbar);
+        progressBar = (ProgressBar) findViewById(R.id.progressbar);
         execute_background();
+
+
 
 
     }
@@ -67,7 +71,7 @@ private ProgressBar progressBar;
         @Override
         protected String doInBackground(URL... params) {
             NetworkUtils utils = new NetworkUtils();
-            URL url = utils.makeURL("the-next-web", "latest", "17212abb471447c1bc7bcb493fd44d8c");
+            URL url = utils.makeURL("the-next-web", "latest", "");
             String res = utils.getReponseFromHttpUrl(url);
 
 
