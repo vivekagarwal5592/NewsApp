@@ -17,13 +17,19 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.Recycl
 
     ArrayList<NewsDetails> newsDetails = new ArrayList<>();
     public static final String class_name = "Recycler Adapter";
+    ItemClickListener listener;
 //    public RecyclerAdapter(NewsDetails newsDetails) {
 //
 //    }
 
+    public interface ItemClickListener {
+        public void onItemClick(int clickedItemIndex);
+    }
 
-    public RecyclerAdapter(ArrayList<NewsDetails> newsDetails) {
+
+    public RecyclerAdapter(ArrayList<NewsDetails> newsDetails, ItemClickListener listener) {
         this.newsDetails = newsDetails;
+        this.listener = listener;
     }
 
     @Override
@@ -54,7 +60,7 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.Recycl
         return newsDetails.size();
     }
 
-    public static class RecyclerViewHolder extends RecyclerView.ViewHolder {
+    public class RecyclerViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         TextView title, author, description, url;
 
@@ -65,9 +71,16 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.Recycl
             url = (TextView) view.findViewById(R.id.url);
             author = (TextView) view.findViewById(R.id.author);
             description = (TextView) view.findViewById((R.id.description));
+            view.setOnClickListener(this);
         }
 
 
+        @Override
+        public void onClick(View view) {
+            int pos = getAdapterPosition();
+            Log.e(class_name, "inOnClick");
+            listener.onItemClick(pos);
+        }
     }
 
 

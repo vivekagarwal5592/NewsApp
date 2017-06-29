@@ -1,6 +1,8 @@
 package vivz.newsapp;
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -10,7 +12,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ProgressBar;
 
 import org.json.JSONArray;
@@ -37,8 +38,6 @@ public class MainActivity extends AppCompatActivity {
 
         progressBar = (ProgressBar) findViewById(R.id.progressbar);
         execute_background();
-
-
 
 
     }
@@ -71,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected String doInBackground(URL... params) {
             NetworkUtils utils = new NetworkUtils();
-            URL url = utils.makeURL("the-next-web", "latest", "");
+            URL url = utils.makeURL("the-next-web", "latest", "17212abb471447c1bc7bcb493fd44d8c");
             String res = utils.getReponseFromHttpUrl(url);
 
 
@@ -82,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(String searchresult) {
-            Log.e(class_name, searchresult);
+            Log.e(class_name, ""+searchresult);
             progressBar.setVisibility(View.INVISIBLE);
             try {
 
@@ -102,17 +101,34 @@ public class MainActivity extends AppCompatActivity {
                 }
 
 
-                recyclerView = (RecyclerView) findViewById(R.id.container);
-                adapter = new RecyclerAdapter(newsdetails);
-                layoutManager = new LinearLayoutManager(context);
-                recyclerView.setLayoutManager(layoutManager);
-                recyclerView.setHasFixedSize(true);
-                recyclerView.setAdapter(adapter);
-
             } catch (JSONException e) {
                 Log.e(class_name, "error", e);
                 e.printStackTrace();
             }
+
+
+            adapter = new RecyclerAdapter(newsdetails, new RecyclerAdapter.ItemClickListener() {
+                @Override
+                public void onItemClick(int clickedItemIndex) {
+                    String url = newsdetails.get(clickedItemIndex).getUrl();
+                    Log.e(class_name, String.format("Url %s", url));
+
+                    Uri webpage = Uri.parse(url);
+                    Intent intent = new Intent(Intent.ACTION_VIEW, webpage);
+
+                    if (intent.resolveActivity(getPackageManager()) != null) {
+                        startActivity(intent);
+                    }
+
+                }
+            });
+
+            recyclerView = (RecyclerView) findViewById(R.id.container);
+            // adapter = new RecyclerAdapter(newsdetails);
+            layoutManager = new LinearLayoutManager(context);
+            recyclerView.setLayoutManager(layoutManager);
+            recyclerView.setHasFixedSize(true);
+            recyclerView.setAdapter(adapter);
 
 
             //  TextView displayJSON = (TextView) findViewById(R.id.displayJSON);
