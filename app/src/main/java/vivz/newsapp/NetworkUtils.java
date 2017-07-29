@@ -1,25 +1,24 @@
 package vivz.newsapp;
 
+import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
+import android.view.View;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Scanner;
 
-
-import android.net.Uri;
-import android.util.Log;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Scanner;
+import vivz.newsapp.DbUtils.Contract;
+import vivz.newsapp.Model.NewsDetails;
 
 
 /**
@@ -60,6 +59,7 @@ public class NetworkUtils {
         }
 
         try {
+
             InputStream in = urlConnection.getInputStream();
             Scanner input = new Scanner(in);
 
@@ -73,5 +73,72 @@ public class NetworkUtils {
 
         return null;
     }
+
+
+    public static ArrayList<NewsDetails> parseJSON(String data) throws JSONException {
+
+
+        ArrayList<NewsDetails> newsDetails = new  ArrayList<NewsDetails>();
+
+
+            Log.e(TAG, data);
+       //     progressBar.setVisibility(View.INVISIBLE);
+            try {
+
+                JSONObject main = new JSONObject(data);
+
+                JSONArray items = main.getJSONArray("articles");
+
+                for (int i = 0; i < items.length(); i++) {
+                    JSONObject item = items.getJSONObject(i);
+                    String author = item.getString("author");
+                    String article_url = item.getString("url");
+                    String title = item.getString("title");
+                    String description = item.getString("description");
+                    String image_url = item.getString("urlToImage");
+                    //       Log.e(class_name, name);
+                    //      result.add(new Repository(name,url,owner));
+                    newsDetails.add(new NewsDetails(title, author, description, article_url, image_url));
+                }
+
+
+            } catch (JSONException e) {
+                Log.e(TAG, "error", e);
+                e.printStackTrace();
+            }
+
+
+        return newsDetails;
+
+
+
+
+
+        }
+
+    public static ArrayList<NewsDetails> parseJSON(Cursor cursor) throws JSONException {
+
+
+        ArrayList<NewsDetails> newsDetails = new  ArrayList<NewsDetails>();
+
+
+        while (cursor.moveToNext()) {
+            newsDetails.add(new NewsDetails(
+                    cursor.getString(cursor.getColumnIndex(Contract.TABLE_NewsApp.COLUMN_NAME_TITLE)),
+                    cursor.getInt(cursor.getColumnIndex(Contract.TABLE_NewsApp.COLUMN_NAME_ID)),
+                    cursor.getString(cursor.getColumnIndex(Contract.TABLE_NewsApp.COLUMN_NAME_AUTHOR)),
+                    cursor.getString(cursor.getColumnIndex(Contract.TABLE_NewsApp.COLUMN_NAME_DESCRIPTION)),
+                    cursor.getString(cursor.getColumnIndex(Contract.TABLE_NewsApp.COLUMN_NAME_IMAGE)),
+                    cursor.getString(cursor.getColumnIndex(Contract.TABLE_NewsApp.COLUMN_NAME_URL))
+            ));
+        }
+        return newsDetails;
+
+
+
+
+
+    }
+
 
 }

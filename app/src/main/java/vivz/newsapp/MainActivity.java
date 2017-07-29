@@ -2,6 +2,9 @@ package vivz.newsapp;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -11,131 +14,57 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.ProgressBar;
 
-import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.net.URL;
 import java.util.ArrayList;
+
+import vivz.newsapp.DbUtils.Contract;
+import vivz.newsapp.DbUtils.DbHelper;
+import vivz.newsapp.Model.NewsDetails;
 
 public class MainActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
-    private RecyclerView.Adapter adapter;
+    private RecyclerAdapter adapter;
     private RecyclerView.LayoutManager layoutManager;
-    private ArrayList<NewsDetails> newsdetails = new ArrayList<NewsDetails>();
+    //  private ArrayList<NewsDetails> newsdetails = new ArrayList<NewsDetails>();
+    private ArrayList<NewsDetails> newsDetails = new ArrayList<NewsDetails>();
     private final Context context = this;
-    private Background background;
+
     private ProgressBar progressBar;
+    private AsyncTask asyncTask;
+    private static String TAG = "MainActivity";
+    private Cursor cursor;
+    private SQLiteDatabase db;
+    private SharedPreferences sharedPreferences;
+    SharedPreferences.Editor editor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         progressBar = (ProgressBar) findViewById(R.id.progressbar);
-        execute_background();
+        sharedPreferences = getApplicationContext().getSharedPreferences("data", MODE_PRIVATE);
+        editor = sharedPreferences.edit();
+
+        if (sharedPreferences.getBoolean("first_install", true)) {
+            Log.e(TAG,"First install");
+            refresh_data();
+            editor.putBoolean("first_install", false);
+            editor.commit();
+        } else {
+            Log.e(TAG,"Not First install");
+            refreshUI();
+        }
+
+
+        ScheduleUtilities.scheduleRefresh(this);
 
 
     }
 
-    public void execute_background() {
-        background = new Background();
-        background.execute();
-    }
-
-
-    public class Background extends AsyncTask<URL, Void, String> {
-
-        Context context;
-
-        public Background(Context context) {
-            this.context = context;
-        }
-
-        public Background() {
-        }
-
-        public static final String class_name = "Background";
-
-        @Override
-        protected void onPreExecute() {
-
-            progressBar.setVisibility(View.VISIBLE);
-        }
-
-        @Override
-        protected String doInBackground(URL... params) {
-            NetworkUtils utils = new NetworkUtils();
-            URL url = utils.makeURL("the-next-web", "latest", "17212abb471447c1bc7bcb493fd44d8c");
-            String res = utils.getReponseFromHttpUrl(url);
-
-
-//
-            return res;
-
-        }
-
-        @Override
-        protected void onPostExecute(String searchresult) {
-            Log.e(class_name, ""+searchresult);
-            progressBar.setVisibility(View.INVISIBLE);
-            try {
-
-                JSONObject main = new JSONObject(searchresult);
-
-                JSONArray items = main.getJSONArray("articles");
-
-                for (int i = 0; i < items.length(); i++) {
-                    JSONObject item = items.getJSONObject(i);
-                    String name = item.getString("author");
-                    String article_url = item.getString("url");
-                    String title = item.getString("title");
-                    String description = item.getString("description");
-                    Log.e(class_name, name);
-                    //      result.add(new Repository(name,url,owner));
-                    newsdetails.add(new NewsDetails(name, article_url, title, description));
-                }
-
-
-            } catch (JSONException e) {
-                Log.e(class_name, "error", e);
-                e.printStackTrace();
-            }
-
-
-            adapter = new RecyclerAdapter(newsdetails, new RecyclerAdapter.ItemClickListener() {
-                @Override
-                public void onItemClick(int clickedItemIndex) {
-                    String url = newsdetails.get(clickedItemIndex).getUrl();
-                    Log.e(class_name, String.format("Url %s", url));
-
-                    Uri webpage = Uri.parse(url);
-                    Intent intent = new Intent(Intent.ACTION_VIEW, webpage);
-
-                    if (intent.resolveActivity(getPackageManager()) != null) {
-                        startActivity(intent);
-                    }
-
-                }
-            });
-
-            recyclerView = (RecyclerView) findViewById(R.id.container);
-            // adapter = new RecyclerAdapter(newsdetails);
-            layoutManager = new LinearLayoutManager(context);
-            recyclerView.setLayoutManager(layoutManager);
-            recyclerView.setHasFixedSize(true);
-            recyclerView.setAdapter(adapter);
-
-
-            //  TextView displayJSON = (TextView) findViewById(R.id.displayJSON);
-            // displayJSON.setText(searchresult);
-
-        }
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -153,12 +82,96 @@ public class MainActivity extends AppCompatActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         switch (item.getItemId()) {
             case R.id.search:
-                execute_background();
+                refresh_data();
+                adapter.swapCursor(newsDetails);
+
+
                 return true;
 
             default:
                 return super.onOptionsItemSelected(item);
         }
+
+
+    }
+
+    public void refreshUI() {
+
+
+        db = new DbHelper(MainActivity.this).getReadableDatabase();
+        cursor = DbHelper.getAll(db);
+
+        newsDetails = new ArrayList<>();
+
+        //  ArrayList<NewsDetails> newsDetail= new  ArrayList<NewsDetails>();
+        while (cursor.moveToNext()) {
+            //   Log.e(TAG,"in cursor");
+            newsDetails.add(new NewsDetails(
+                    cursor.getString(cursor.getColumnIndex(Contract.TABLE_NewsApp.COLUMN_NAME_TITLE)),
+                    cursor.getInt(cursor.getColumnIndex(Contract.TABLE_NewsApp.COLUMN_NAME_ID)),
+                    cursor.getString(cursor.getColumnIndex(Contract.TABLE_NewsApp.COLUMN_NAME_AUTHOR)),
+                    cursor.getString(cursor.getColumnIndex(Contract.TABLE_NewsApp.COLUMN_NAME_DESCRIPTION)),
+                    cursor.getString(cursor.getColumnIndex(Contract.TABLE_NewsApp.COLUMN_NAME_URL)),
+                    cursor.getString(cursor.getColumnIndex(Contract.TABLE_NewsApp.COLUMN_NAME_IMAGE))
+            ));
+        }
+
+        db.close();
+
+        //   Log.e(TAG,"before");
+        for (NewsDetails n : newsDetails) {
+            //   Log.e(TAG,"in");
+            //     Log.e(TAG,n.getAuthor());
+        }
+
+        adapter = new RecyclerAdapter(newsDetails, new RecyclerAdapter.ItemClickListener() {
+            @Override
+            public void onItemClick(int clickedItemIndex) {
+                String url = newsDetails.get(clickedItemIndex).getUrl();
+                //     Log.e(TAG, String.format("Url %s", url));
+
+                Uri webpage = Uri.parse(url);
+                Intent intent = new Intent(Intent.ACTION_VIEW, webpage);
+
+                if (intent.resolveActivity(getPackageManager()) != null) {
+                    startActivity(intent);
+                }
+            }
+        });
+
+
+        recyclerView = (RecyclerView) findViewById(R.id.container);
+        layoutManager = new LinearLayoutManager(context);
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setAdapter(adapter);
+
+
+    }
+
+    public void refresh_data() {
+
+        AsyncResponse asyncResponse = new AsyncResponse(context, new AsyncData() {
+            @Override
+            public void getData(String data) {
+
+                //   Log.e(TAG,data);
+                newsDetails = null;
+                try {
+                    newsDetails = NetworkUtils.parseJSON(data);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                db = new DbHelper(MainActivity.this).getWritableDatabase();
+                DbHelper.deleteData(db);
+                DbHelper.insertData(db, newsDetails);
+                db.close();
+                refreshUI();
+            }
+        });
+
+        asyncResponse.forceLoad();
+        //   asyncResponse.execute();
 
 
     }

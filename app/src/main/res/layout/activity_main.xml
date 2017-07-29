@@ -11,17 +11,6 @@
     android:orientation="vertical"
     tools:context="vivz.newsapp.MainActivity">
 
-    <ProgressBar
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
-        android:layout_centerInParent="true"
-        android:visibility="invisible"
-        android:id="@+id/progressbar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
-
-
-
     <android.support.v7.widget.RecyclerView
         android:id="@+id/container"
         android:layout_width="match_parent"
@@ -31,6 +20,15 @@
 
     <TextView
         android:id="@+id/displayJSON"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <ProgressBar
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:layout_centerInParent="true"
+        android:visibility="invisible"
+        android:id="@+id/progressbar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 </LinearLayout>
